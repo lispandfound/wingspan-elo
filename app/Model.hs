@@ -24,6 +24,18 @@ Ranking
     timestamp Text
     playerId PlayerId
     deriving Show
+Game
+PlayerGame
+    playerId PlayerId
+    gameId GameId
+    bird Int
+    bonus Int
+    goal Int
+    egg Int
+    cache Int
+    tucked Int
+    friendship Int
+    tiebreak Int
 Avatar
     key Text
     name Text
