@@ -19,10 +19,8 @@ import Web.Scotty as S
 
 wordHtml :: Text -> Html
 wordHtml word = docTypeHtml $ do
-  H.head $ do
-    H.title "Word"
-  H.body $ do
-    h1 ("Hello world: " <> toHtml word)
+  H.head $ H.title "Word"
+  H.body $ h1 ("Hello world: " <> toHtml word)
 
 scripts :: Html
 scripts = do
@@ -37,26 +35,23 @@ index topId topPlayer topAvatar topRank rankings = docTypeHtml $ do
     H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1.0"
     scripts
   H.body $ do
-    H.header $ do
-      H.div ! A.style "text-align: center; margin-bottom: 20px;" $ do
-        H.h1 "Wingspan ELO Rankings"
+    H.header $ H.div ! A.style "text-align: center; margin-bottom: 20px;" $ do
+      H.h1 "Wingspan ELO Rankings"
 
     mainContent
   where
     mainContent = H.div ! A.style "margin: 0 auto; max-width: 1200px;" $ do
-      H.div ! A.class_ "top-players" ! A.style "display: flex; justify-content: space-around; margin: 20px 0;" $ do
-        playerCard
+      H.div ! A.class_ "top-players" ! A.style "display: flex; justify-content: space-around; margin: 20px 0;" $ playerCard
       searchBar
       rankingsTable
 
-    searchBar = H.div ! A.style "margin: 20px 0; text-align: center;" $ do
-      H.form ! A.action "#" ! A.method "get" $ do
-        H.input ! A.type_ "text" ! A.name "search" ! A.placeholder "Search player..."
-        H.button ! A.type_ "submit" $ "Search"
+    searchBar = H.div ! A.style "margin: 20px 0; text-align: center;" $ H.form ! A.action "#" ! A.method "get" $ do
+      H.input ! A.type_ "text" ! A.name "search" ! A.placeholder "Search player..."
+      H.button ! A.type_ "submit" $ "Search"
     playerLink :: PlayerId -> Player -> Html
     playerLink playerId player = H.a ! (A.href . textValue $ "/players/" <> (pack . show . fromSqlKey $ playerId)) $ toHtml (playerName player)
     playerCard = H.div ! A.style "text-align: center;" $ do
-      maybe mempty ((! A.style "width: 150px; height: 150px; border-radius: 50%;") . avatarImage) (topAvatar)
+      maybe mempty ((! A.style "width: 150px; height: 150px; border-radius: 50%;") . avatarImage) topAvatar
       H.h3 "Top Player"
       playerLink topId topPlayer
       H.p $ do
@@ -67,12 +62,11 @@ index topId topPlayer topAvatar topRank rankings = docTypeHtml $ do
         H.strong $ H.toHtml (rankingElo topRank)
 
     rankingsTable = H.table ! A.style "width: 100%; border-collapse: collapse; margin: 20px 0;" $ do
-      H.thead $ do
-        H.tr $ do
-          H.th "Rank"
-          H.th "Player"
-          H.th "Country"
-          H.th "ELO"
+      H.thead $ H.tr $ do
+        H.th "Rank"
+        H.th "Player"
+        H.th "Country"
+        H.th "ELO"
       H.tbody $ mapM_ tableRow exampleData
 
     tableRow (rank, (playerId, player, ranking)) = H.tr $ do
@@ -93,9 +87,8 @@ playerProfile player avatar rankings = docTypeHtml $ do
     scripts
     H.script ! A.src "https://cdn.plot.ly/plotly-2.35.2.min.js" $ mempty
   H.body $ do
-    H.header $ do
-      H.div ! A.style "text-align: center; margin-bottom: 20px;" $ do
-        H.h1 "Player Profile"
+    H.header $ H.div ! A.style "text-align: center; margin-bottom: 20px;" $ do
+      H.h1 "Player Profile"
     mainContent
   where
     mainContent = H.div ! A.style "margin: 0 auto; max-width: 1200px;" $ do
@@ -134,10 +127,10 @@ rankingHistorySection rankings = H.section $ do
     "}])"
 
 avatarImage :: Avatar -> Html
-avatarImage avatar = do
+avatarImage avatar =
   H.img
     ! A.id "avatar-image"
-    ! A.src ("/avatars/" <> (textValue $ avatarKey avatar) <> ".jpg")
+    ! A.src ("/avatars/" <> textValue (avatarKey avatar) <> ".jpg")
     ! A.alt (textValue $ avatarName avatar)
 
 registrationPage :: [Avatar] -> Html
@@ -148,35 +141,32 @@ registrationPage avatars = docTypeHtml $ do
     H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1.0"
     scripts
   H.body $ do
-    H.header $ do
-      H.div ! A.style "text-align: center; margin-bottom: 20px;" $ do
-        H.h1 "Player Registration"
+    H.header $ H.div ! A.style "text-align: center; margin-bottom: 20px;" $ do
+      H.h1 "Player Registration"
     mainContent
   where
-    avatarDisplay = H.div ! A.style "text-align: center; margin-bottom: 20px;" $ do
-      avatarImage (Avatar "placehold" "Placeholder") ! A.style "width: 150px; height: 150px; border: 2px solid #ccc;"
-    mainContent = H.div ! A.style "margin: 0 auto; max-width: 600px; padding: 20px; border: 1px solid #ddd; border-radius: 8px;" $ do
-      H.form ! A.action "/submit-registration" ! A.method "post" ! A.style "display: flex; flex-direction: column; gap: 15px;" $ do
-        avatarDisplay
+    avatarDisplay = H.div ! A.style "text-align: center; margin-bottom: 20px;" $ avatarImage (Avatar "placehold" "Placeholder") ! A.style "width: 150px; height: 150px; border: 2px solid #ccc;"
+    mainContent = H.div ! A.style "margin: 0 auto; max-width: 600px; padding: 20px; border: 1px solid #ddd; border-radius: 8px;" $ H.form ! A.action "/submit-registration" ! A.method "post" ! A.style "display: flex; flex-direction: column; gap: 15px;" $ do
+      avatarDisplay
 
-        -- Name input
-        H.div ! A.style "display: flex; justify-content: space-between; align-items: center;" $ do
-          H.label ! A.for "name" ! A.style "margin-right: 20px;" $ "Name:"
-          H.input ! A.type_ "text" ! A.id "name" ! A.name "name" ! A.required "true" ! A.placeholder "Enter your name"
+      -- Name input
+      H.div ! A.style "display: flex; justify-content: space-between; align-items: center;" $ do
+        H.label ! A.for "name" ! A.style "margin-right: 20px;" $ "Name:"
+        H.input ! A.type_ "text" ! A.id "name" ! A.name "name" ! A.required "true" ! A.placeholder "Enter your name"
 
-        -- Country input
-        H.div ! A.style "display: flex; justify-content: space-between; align-items: center;" $ do
-          H.label ! A.for "country" ! A.style "margin-right: 20px;" $ "Country:"
-          H.input ! A.type_ "text" ! A.id "country" ! A.name "country" ! A.required "true" ! A.placeholder "Enter your country"
+      -- Country input
+      H.div ! A.style "display: flex; justify-content: space-between; align-items: center;" $ do
+        H.label ! A.for "country" ! A.style "margin-right: 20px;" $ "Country:"
+        H.input ! A.type_ "text" ! A.id "country" ! A.name "country" ! A.required "true" ! A.placeholder "Enter your country"
 
-        -- Avatar selection (Dropdown)
-        H.div ! A.style "display: flex; justify-content: space-between; align-items: center;" $ do
-          H.label ! A.for "avatar" ! A.style "margin-right: 20px;" $ "Mascot:"
-          H.select ! A.id "avatar" ! A.name "avatar" $
-            mconcatMapM (\avatar -> H.option ! A.value (textValue $ avatarKey avatar) ! hxSwap "outerHTML" ! hxGet ("/inject/avatars/" <> (textValue $ avatarKey avatar)) ! hxTarget "#avatar-image" $ H.toHtml (avatarName avatar)) avatars
-        -- Submit button
-        H.div ! A.style "text-align: center; margin-top: 20px;" $ do
-          H.button ! A.type_ "submit" ! A.style "width: 100%; padding: 10px;" $ "Register"
+      -- Avatar selection (Dropdown)
+      H.div ! A.style "display: flex; justify-content: space-between; align-items: center;" $ do
+        H.label ! A.for "avatar" ! A.style "margin-right: 20px;" $ "Mascot:"
+        H.select ! A.id "avatar" ! A.name "avatar" $
+          mconcatMapM (\avatar -> H.option ! A.value (textValue $ avatarKey avatar) ! hxSwap "outerHTML" ! hxGet ("/inject/avatars/" <> textValue (avatarKey avatar)) ! hxTarget "#avatar-image" $ H.toHtml (avatarName avatar)) avatars
+      -- Submit button
+      H.div ! A.style "text-align: center; margin-top: 20px;" $ do
+        H.button ! A.type_ "submit" ! A.style "width: 100%; padding: 10px;" $ "Register"
 
 gameRegistration :: [Entity Player] -> Html
 gameRegistration players = docTypeHtml $ do
@@ -186,8 +176,7 @@ gameRegistration players = docTypeHtml $ do
     H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1.0"
     scripts
   H.body $ do
-    H.header ! A.style "text-align: center; margin-bottom: 20px;" $ do
-      H.h1 "Register a Game"
+    H.header ! A.style "text-align: center; margin-bottom: 20px;" $ H.h1 "Register a Game"
     mainContent
   where
     mainContent = H.div $ do
@@ -201,13 +190,12 @@ gameRegistration players = docTypeHtml $ do
         -- Button to add a new row dynamically
 
         -- Submit button
-        H.div ! A.style "margin-top: 20px;" $ do
-          H.button ! A.type_ "submit" ! A.style "width: 100%;" $ "Submit Game"
+        H.div ! A.style "margin-top: 20px;" $ H.button ! A.type_ "submit" ! A.style "width: 100%;" $ "Submit Game"
 
 playerRow :: [Entity Player] -> Bool -> Html
 playerRow players canDelete = H.div ! A.class_ "player-row" ! A.style "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;" $ do
   -- Player selection dropdown
-  H.select ! A.name "player[]" $ do
+  H.select ! A.name "player[]" $
     mconcatMapM
       ( \player ->
           H.option ! A.value (textValue . pack . show . fromSqlKey . entityKey $ player) $
@@ -242,12 +230,11 @@ playerRow players canDelete = H.div ! A.class_ "player-row" ! A.style "display: 
     $ "-"
 
 formParamList :: (Parsable a) => Text -> ActionM [a]
-formParamList paramName = S.formParams >>= either ((>> (status status400 >> finish)) . S.text) pure . mapM (parseParam . TL.fromStrict) . L.map snd . L.filter ((== paramName) . fst)
+formParamList paramName = S.formParams >>= either ((>> (status status400 >> finish)) . S.text) pure . mapM ((parseParam . TL.fromStrict) . snd) . L.filter ((== paramName) . fst)
 
 main :: IO ()
 main = do
-  runSqlite dbPath $ do
-    initializeDB
+  runSqlite dbPath $ initializeDB
   scotty 3000 $ do
     middleware $ staticPolicy (noDots >-> addBase "static")
     get
