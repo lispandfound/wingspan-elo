@@ -62,13 +62,13 @@ executable wingspan-ranking
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules: Model, HTMX
 
     -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-
+    other-extensions: OverloadedStrings
+    default-extensions: DerivingStrategies, UndecidableInstances, DataKinds, EmptyDataDecls, FlexibleContexts, FlexibleInstances, GADTs, GeneralizedNewtypeDeriving, MultiParamTypeClasses, OverloadedStrings, QuasiQuotes, StandaloneDeriving, TemplateHaskell, TypeFamilies, TypeOperators, TupleSections
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.17.2.1, sqlite-simple, servant, blaze-html
+    build-depends:    base, sqlite-simple, scotty, blaze-html, blaze-markup, text, persistent, persistent-sqlite, transformers, wai-middleware-static, extra, http-types, aeson
 
     -- Directories containing source files.
     hs-source-dirs:   app
