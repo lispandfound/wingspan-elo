@@ -61,7 +61,7 @@ index topId topPlayer topAvatar topRank rankings = docTypeHtml $ do
         H.strong $ H.toHtml (playerCountry topPlayer)
       H.p $ do
         "ELO: "
-        H.strong $ H.toHtml (rankingElo topRank)
+        H.strong $ H.toHtml (round (rankingElo topRank) :: Int)
 
     rankingsTable = H.table ! A.style "width: 100%; border-collapse: collapse; margin: 20px 0;" $ do
       H.thead $ H.tr $ do
@@ -236,7 +236,7 @@ formParamList paramName = S.formParams >>= either ((>> (status status400 >> fini
 
 main :: IO ()
 main = do
-  runSqlite dbPath (initializeDB >> dummyRankings)
+  runSqlite dbPath (initializeDB)
   scotty 3000 $ do
     middleware $ staticPolicy (noDots >-> addBase "static")
     get
