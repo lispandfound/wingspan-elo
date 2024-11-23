@@ -1,11 +1,14 @@
-module Main where
+module Main (Main.main) where
 
 import Control.Applicative (ZipList (..))
 import Control.Monad.Extra (forM_, mconcatMapM)
+import Control.Monad.IO.Class
 import qualified Data.Aeson.Text as JSON
 import Data.List as L
 import Data.Text hiding (index)
 import qualified Data.Text.Lazy as TL
+import Data.Time.Clock (getCurrentTime)
+import Data.Time.Format (defaultTimeLocale, formatTime)
 import Database.Persist.Sqlite (Entity, entityKey, entityVal, fromSqlKey, runSqlite, toSqlKey)
 import qualified Database.Persist.Sqlite as Sq
 import HTMX
@@ -16,11 +19,10 @@ import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A
 import Web.Scotty as S
+import Wingspan
 
-wordHtml :: Text -> Html
-wordHtml word = docTypeHtml $ do
-  H.head $ H.title "Word"
-  H.body $ h1 ("Hello world: " <> toHtml word)
+now :: (MonadIO m) => m Text
+now = pack . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ" <$> liftIO getCurrentTime
 
 scripts :: Html
 scripts = do
@@ -234,14 +236,14 @@ formParamList paramName = S.formParams >>= either ((>> (status status400 >> fini
 
 main :: IO ()
 main = do
-  runSqlite dbPath $ initializeDB
+  runSqlite dbPath (initializeDB >> dummyRankings)
   scotty 3000 $ do
     middleware $ staticPolicy (noDots >-> addBase "static")
     get
       "/"
       ( do
           rankings <- runSqlite dbPath getRankings
-          let (topId, topPlayer, topRank) = head rankings
+          let (topId, topPlayer, topRank) = L.head rankings
           topAvatar <- runSqlite dbPath $ playerAvatar topPlayer
           S.html $ renderHtml (index topId topPlayer topAvatar topRank rankings)
       )
@@ -252,11 +254,11 @@ main = do
     get
       "/players/:id"
       ( do
-          id <- toSqlKey <$> pathParam "id"
-          playerRet <- runSqlite dbPath $ Sq.get id
+          playerQueryId <- toSqlKey <$> pathParam "id"
+          playerRet <- runSqlite dbPath $ Sq.get playerQueryId
           case playerRet of
             Just player -> do
-              rankings <- runSqlite dbPath $ getPlayerRankings id
+              rankings <- runSqlite dbPath $ getPlayerRankings playerQueryId
               avatar <- runSqlite dbPath $ playerAvatar player
               S.html $ renderHtml (playerProfile player avatar rankings)
             Nothing -> next
@@ -281,10 +283,14 @@ main = do
       cache <- formParamList "points_tuck[]"
       friendship <- formParamList "points_friendship[]"
       tiebreak <- formParamList "points_tiebreak[]"
+      insTime <- now
       runSqlite dbPath $ do
         gameId <- Sq.insert Game
         let games = getZipList $ PlayerGame <$> ZipList players <*> ZipList (L.repeat gameId) <*> ZipList bird <*> ZipList bonus <*> ZipList goal <*> ZipList egg <*> ZipList food <*> ZipList cache <*> ZipList friendship <*> ZipList tiebreak
-        forM_ games Sq.insert
+        Sq.insertMany_ games
+        rankings <- L.map (\(_, _, r) -> r {rankingTimestamp = insTime}) . L.filter (\(p_, _, _) -> p_ `L.elem` players) <$> getRankings
+        let gameOutcome = outcome games
+        Sq.insertMany_ (updateRankings gameOutcome rankings)
       redirect "/"
     post "/submit-registration" $ do
       name <- S.formParam "name"

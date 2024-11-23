@@ -46,12 +46,12 @@ initializeDB = runMigration migrateAll
 
 getRankings :: (MonadIO m) => ReaderT SqlBackend m [(Key Player, Player, Ranking)]
 getRankings = do
-  rankingRecords <- selectList [] []
+  rankingRecords <- selectList [] [Desc RankingPlayerId, Desc RankingTimestamp]
   players <- selectList [] []
-  let rankings = sortOn (negate . rankingElo) . map (maximumBy (comparing rankingTimestamp)) . groupBy player . map entityVal $ rankingRecords
-  return $ mapMaybe (\ranking -> fmap (\player -> ((entityKey) player, entityVal player, ranking)) $ find (\player -> entityKey player == rankingPlayerId ranking) players) rankings
+  let rankings = sortOn (negate . rankingElo) . mapMaybe listToMaybe . groupBy player . map entityVal $ rankingRecords
+  return $ mapMaybe (\ranking -> (\player -> (entityKey player, entityVal player, ranking)) <$> find (\player -> entityKey player == rankingPlayerId ranking) players) rankings
   where
-    player (Ranking {rankingPlayerId = id1}) (Ranking {rankingPlayerId = id2}) = id1 == id2
+    player (Ranking {rankingPlayerId = id1}) (Ranking {rankingPlayerId = id2}) = fromSqlKey id1 == fromSqlKey id2
 
 getPlayerRankings :: (MonadIO m) => Key Player -> ReaderT SqlBackend m [Ranking]
 getPlayerRankings key = map entityVal <$> selectList [RankingPlayerId ==. key] [Desc RankingTimestamp]
@@ -69,11 +69,11 @@ dummyRankings = do
   sofia <- insert $ Player "Sofia Wings" "UK" tui
   ada <- insert $ Player "Ada Aviary" "IND" piwakawaka
   john <- insert $ Player "John Feathers" "CAN" kea
-  void . insert $ Ranking 2900.0 0.0 "2024-11-22T00:00:00" magnus
-  void . insert $ Ranking 2900.0 0.0 "2024-11-21T00:00:00" magnus
-  void . insert $ Ranking 2750.0 0.0 "2024-11-22T00:00:00" sofia
-  void . insert $ Ranking 2730.0 0.0 "2024-11-22T00:00:00" ada
-  void . insert $ Ranking 2720.0 0.0 "2024-11-22T00:00:00" john
+  void . insert $ Ranking 2900.0 0.0 "2024-11-22T00:00:00Z" magnus
+  void . insert $ Ranking 2900.0 0.0 "2024-11-21T00:00:00Z" magnus
+  void . insert $ Ranking 2750.0 0.0 "2024-11-22T00:00:00Z" sofia
+  void . insert $ Ranking 2730.0 0.0 "2024-11-22T00:00:00Z" ada
+  void . insert $ Ranking 2720.0 0.0 "2024-11-22T00:00:00Z" john
 
 avatarForKey :: (MonadIO m) => Text -> ReaderT SqlBackend m (Maybe Avatar)
 avatarForKey key = listToMaybe . map entityVal <$> selectList [AvatarKey ==. key] []
@@ -82,7 +82,7 @@ avatarKeyToId :: (MonadIO m) => Text -> ReaderT SqlBackend m (Maybe (Key Avatar)
 avatarKeyToId key = listToMaybe . map entityKey <$> selectList [AvatarKey ==. key] []
 
 defaultRanking :: Key Player -> Ranking
-defaultRanking player = Ranking 25.0 (25.0 / 3) "NOW" player
+defaultRanking = Ranking 25.0 (25.0 / 3) "NOW"
 
 birds :: (MonadIO m) => ReaderT SqlBackend m [Entity Avatar]
 birds = selectList [] []
